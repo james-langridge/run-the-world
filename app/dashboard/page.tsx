@@ -5,6 +5,7 @@ import { ClearResyncButton } from '@/components/clear-resync-button';
 import { SyncStatus } from '@/components/sync-status';
 import { LocationStats } from '@/components/location-stats';
 import { UpdateStatsButton } from '@/components/update-stats-button';
+import { DisconnectButton } from '@/components/disconnect-button';
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
@@ -50,12 +51,7 @@ export default async function DashboardPage(props: {
               <span className="text-sm text-gray-600 dark:text-gray-300">
                 {user.firstName} {user.lastName}
               </span>
-              <a
-                href={`/auth/logout?athleteId=${athleteId}`}
-                className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-              >
-                Logout
-              </a>
+              <DisconnectButton athleteId={athleteId} />
             </div>
           </div>
         </div>
