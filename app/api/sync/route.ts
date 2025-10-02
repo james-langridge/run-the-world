@@ -15,11 +15,17 @@ export async function POST(request: NextRequest) {
 
     console.log('[Sync API] Starting sync for athlete:', athleteId);
 
+    // Get current user to preserve progress
+    const user = await prisma.user.findUnique({
+      where: { athleteId },
+      select: { syncProgress: true }
+    });
+
     await prisma.user.update({
       where: { athleteId },
       data: {
         syncStatus: 'SYNCING',
-        syncProgress: 0,
+        syncProgress: user?.syncProgress || 0, // Preserve existing progress
         syncStartedAt: new Date()
       }
     });
