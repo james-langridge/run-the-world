@@ -1,15 +1,18 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { SyncButton } from './sync-button';
 
 export function SyncStatus({
   status,
   progress,
-  message
+  message,
+  athleteId
 }: {
   status: string;
   progress: number;
   message?: string | null;
+  athleteId: string;
 }) {
   const router = useRouter();
 
@@ -30,12 +33,15 @@ export function SyncStatus({
       <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
         Due to Strava rate limits, large syncs may take several hours. You can close this page and check back later. Note: deployments will interrupt the sync, but your progress is saved.
       </p>
-      <button
-        onClick={handleRefresh}
-        className="inline-flex items-center px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium rounded-lg transition-colors"
-      >
-        Refresh Page
-      </button>
+      <div className="flex gap-3">
+        <button
+          onClick={handleRefresh}
+          className="inline-flex items-center px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium rounded-lg transition-colors"
+        >
+          Refresh Page
+        </button>
+        <SyncButton athleteId={athleteId} isResume={true} />
+      </div>
     </div>
   );
 }

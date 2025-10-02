@@ -74,7 +74,7 @@ export default async function DashboardPage(props: {
           </div>
         )}
 
-        <SyncStatus status={user.syncStatus} progress={user.syncProgress} message={user.syncMessage} />
+        <SyncStatus status={user.syncStatus} progress={user.syncProgress} message={user.syncMessage} athleteId={athleteId} />
 
         {user.syncStatus === 'SYNCING' && activityCount > 0 && stats.length === 0 && (
           <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg shadow p-6 text-center">
