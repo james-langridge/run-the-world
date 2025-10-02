@@ -68,7 +68,10 @@ export async function syncActivities(athleteId: string): Promise<void> {
 
       // Fetch detailed activities to get location data
       const detailedActivities: StravaActivityDetailed[] = [];
-      for (const activity of activitiesWithCoords) {
+      for (let i = 0; i < activitiesWithCoords.length; i++) {
+        const activity = activitiesWithCoords[i];
+        console.log(`[Sync] Fetching detailed activity ${i + 1}/${activitiesWithCoords.length} (ID: ${activity.id})`);
+
         try {
           const detailed = await strava.getActivityWithRefresh(
             activity.id.toString(),
@@ -77,9 +80,12 @@ export async function syncActivities(athleteId: string): Promise<void> {
 
           if (detailed.location_country) {
             detailedActivities.push(detailed);
+            console.log(`[Sync]   ✓ Activity ${activity.id} has location: ${detailed.location_city || 'Unknown city'}, ${detailed.location_country}`);
+          } else {
+            console.log(`[Sync]   ✗ Activity ${activity.id} has no location data`);
           }
         } catch (error) {
-          console.error(`[Sync] Failed to fetch activity ${activity.id}:`, error);
+          console.error(`[Sync]   ✗ Failed to fetch activity ${activity.id}:`, error);
           // Continue with other activities
         }
       }
