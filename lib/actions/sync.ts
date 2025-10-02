@@ -1,6 +1,7 @@
 import { strava } from '@/lib/strava/client';
 import { prisma } from '@/lib/db/prisma';
 import { reverseGeocode } from '@/lib/geocoding/nominatim';
+import { isServerShuttingDown } from '@/lib/shutdown';
 
 type StravaActivitySummary = {
   id: number;
@@ -53,6 +54,12 @@ export async function syncActivities(athleteId: string): Promise<void> {
 
   try {
     while (true) {
+      // Check if server is shutting down
+      if (isServerShuttingDown()) {
+        console.log('[Sync] Server shutting down, exiting sync');
+        return;
+      }
+
       console.log(`[Sync] Fetching page ${page} for athlete ${athleteId}`);
 
       const activities = await strava.listAthleteActivitiesWithRefresh(
