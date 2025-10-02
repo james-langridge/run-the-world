@@ -36,11 +36,6 @@ export async function syncActivities(athleteId: string): Promise<void> {
   let page = 1;
   let totalSynced = 0;
 
-  await prisma.user.update({
-    where: { athleteId },
-    data: { syncStatus: 'SYNCING', syncProgress: 0 }
-  });
-
   try {
     while (true) {
       const activities = await strava.listAthleteActivitiesWithRefresh(
