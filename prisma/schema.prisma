@@ -1,0 +1,77 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  athleteId    String   @id
+  firstName    String
+  lastName     String
+  email        String?
+  profileImage String?
+  joinedAt     DateTime @default(now())
+  lastSyncAt   DateTime?
+  syncStatus   String   @default("NOT_STARTED")
+  syncProgress Int      @default(0)
+
+  tokens      Token?
+  activities  Activity[]
+}
+
+model Token {
+  athleteId    String   @id
+  accessToken  String   @db.Text
+  refreshToken String   @db.Text
+  expiresAt    DateTime
+  scopes       String[]
+
+  user User @relation(fields: [athleteId], references: [athleteId], onDelete: Cascade)
+}
+
+model Activity {
+  id           String   @id @default(cuid())
+  athleteId    String
+  activityId   String   @unique
+  name         String
+  type         String
+  distance     Float
+  movingTime   Int
+  startDate    DateTime
+
+  country      String
+  city         String?
+  state        String?
+
+  user User @relation(fields: [athleteId], references: [athleteId], onDelete: Cascade)
+
+  @@index([athleteId, country, city])
+  @@index([athleteId, startDate])
+  @@index([country])
+  @@index([city])
+}
+
+model LocationStat {
+  id            String   @id @default(cuid())
+  athleteId     String
+  country       String
+  city          String?
+  activityCount Int
+  totalDistance Float
+  totalTime     Int
+  firstActivity DateTime
+  lastActivity  DateTime
+  lastUpdated   DateTime @default(now())
+
+  @@unique([athleteId, country, city])
+  @@index([athleteId])
+}
