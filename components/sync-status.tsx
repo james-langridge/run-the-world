@@ -9,11 +9,13 @@ type SyncStatusDisplay = 'In progress' | 'Paused' | 'Completed!';
 export function SyncStatus({
   status,
   progress,
+  syncTotal,
   syncStartedAt,
   athleteId
 }: {
   status: string;
   progress: number;
+  syncTotal: number;
   syncStartedAt: Date | null;
   athleteId: string;
 }) {
@@ -59,7 +61,10 @@ export function SyncStatus({
             Status: {displayStatus}
           </h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            {progress} activities processed • Last checked: {formatTime(lastChecked)}
+            {syncTotal > 0
+              ? `${progress} / ${syncTotal} activities (${Math.round((progress / syncTotal) * 100)}%)`
+              : `${progress} activities processed`
+            } • Last checked: {formatTime(lastChecked)}
           </p>
         </div>
       </div>

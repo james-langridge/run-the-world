@@ -73,6 +73,39 @@ export async function syncActivities(athleteId: string): Promise<void> {
   console.log('[Sync] Starting sync for athlete:', athleteId);
 
   try {
+    // Fetch athlete stats to get total activity count
+    try {
+      console.log('[Sync] Fetching athlete stats for total activity count');
+
+      // Get fresh token
+      const token = await prisma.token.findUnique({ where: { athleteId } });
+      if (!token) throw new Error('No token found');
+
+      const response = await fetch(`https://www.strava.com/api/v3/athletes/${athleteId}/stats`, {
+        headers: { Authorization: `Bearer ${token.accessToken}` }
+      });
+
+      if (!response.ok) throw new Error(`Stats API returned ${response.status}`);
+
+      const stats = await response.json();
+
+      // Sum up all activity types
+      const totalActivities = (
+        (stats.all_run_totals?.count || 0) +
+        (stats.all_ride_totals?.count || 0) +
+        (stats.all_swim_totals?.count || 0)
+      );
+
+      console.log(`[Sync] Athlete has approximately ${totalActivities} total activities`);
+
+      await prisma.user.update({
+        where: { athleteId },
+        data: { syncTotal: totalActivities }
+      });
+    } catch (error) {
+      console.error('[Sync] Failed to fetch athlete stats, continuing without total:', error);
+    }
+
     while (true) {
       // Check if server is shutting down
       if (isServerShuttingDown()) {
