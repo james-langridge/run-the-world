@@ -14,15 +14,16 @@ datasource db {
 }
 
 model User {
-  athleteId    String   @id
-  firstName    String
-  lastName     String
-  email        String?
-  profileImage String?
-  joinedAt     DateTime @default(now())
-  lastSyncAt   DateTime?
-  syncStatus   String   @default("NOT_STARTED")
-  syncProgress Int      @default(0)
+  athleteId     String   @id
+  firstName     String
+  lastName      String
+  email         String?
+  profileImage  String?
+  joinedAt      DateTime @default(now())
+  syncStartedAt DateTime?
+  lastSyncAt    DateTime?
+  syncStatus    String   @default("NOT_STARTED")
+  syncProgress  Int      @default(0)
 
   tokens      Token?
   activities  Activity[]

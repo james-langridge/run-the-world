@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db/prisma';
 import { SyncButton } from '@/components/sync-button';
+import { ClearResyncButton } from '@/components/clear-resync-button';
 import { SyncStatus } from '@/components/sync-status';
 import { LocationStats } from '@/components/location-stats';
 
@@ -30,9 +31,9 @@ export default async function DashboardPage(props: {
   }
 
   // Check for stale sync (stuck in SYNCING for more than 20 minutes)
-  if (user.syncStatus === 'SYNCING' && user.lastSyncAt) {
+  if (user.syncStatus === 'SYNCING' && user.syncStartedAt) {
     const twentyMinutesAgo = new Date(Date.now() - 20 * 60 * 1000);
-    if (user.lastSyncAt < twentyMinutesAgo) {
+    if (user.syncStartedAt < twentyMinutesAgo) {
       console.log('[Dashboard] Detected stale sync, marking as FAILED');
       await prisma.user.update({
         where: { athleteId },
@@ -98,12 +99,18 @@ export default async function DashboardPage(props: {
             <p className="text-red-700 dark:text-red-400 mb-6">
               The sync may have been interrupted by a deployment or encountered an error. Click below to try again.
             </p>
-            <SyncButton athleteId={athleteId} />
+            <div className="flex gap-4 justify-center">
+              <SyncButton athleteId={athleteId} />
+              <ClearResyncButton athleteId={athleteId} />
+            </div>
           </div>
         )}
 
         {user.syncStatus === 'COMPLETED' && stats.length > 0 && (
           <div className="space-y-6">
+            <div className="flex justify-end">
+              <ClearResyncButton athleteId={athleteId} />
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
                 <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Countries</div>
@@ -141,7 +148,10 @@ export default async function DashboardPage(props: {
               Last sync: {user.lastSyncAt ? new Date(user.lastSyncAt).toLocaleString() : 'Never'} |
               Activities processed: {user.syncProgress}
             </p>
-            <SyncButton athleteId={athleteId} />
+            <div className="flex gap-4 justify-center">
+              <SyncButton athleteId={athleteId} />
+              <ClearResyncButton athleteId={athleteId} />
+            </div>
           </div>
         )}
       </main>
