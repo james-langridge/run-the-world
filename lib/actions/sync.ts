@@ -1,7 +1,17 @@
 import { strava } from '@/lib/strava/client';
 import { prisma } from '@/lib/db/prisma';
 
-type StravaActivity = {
+type StravaActivitySummary = {
+  id: number;
+  name: string;
+  type: string;
+  distance: number;
+  moving_time: number;
+  start_date: string;
+  start_latlng: [number, number] | null;
+};
+
+type StravaActivityDetailed = {
   id: number;
   name: string;
   type: string;
@@ -13,7 +23,7 @@ type StravaActivity = {
   location_state: string | null;
 };
 
-function extractLocationData(activity: StravaActivity, athleteId: string) {
+function extractLocationData(activity: StravaActivityDetailed, athleteId: string) {
   return {
     athleteId,
     activityId: activity.id.toString(),
@@ -46,17 +56,37 @@ export async function syncActivities(athleteId: string): Promise<void> {
       const activities = await strava.listAthleteActivitiesWithRefresh(
         athleteId,
         { per_page: 200, page }
-      ) as unknown as StravaActivity[];
+      ) as unknown as StravaActivitySummary[];
 
       console.log(`[Sync] Received ${activities.length} activities on page ${page}`);
 
       if (activities.length === 0) break;
 
-      const locations = activities
-        .filter(a => a.location_country)
-        .map(a => extractLocationData(a, athleteId));
+      // Filter for activities with coordinates
+      const activitiesWithCoords = activities.filter(a => a.start_latlng && a.start_latlng.length === 2);
+      console.log(`[Sync] ${activitiesWithCoords.length} of ${activities.length} activities have coordinates`);
 
-      console.log(`[Sync] ${locations.length} of ${activities.length} activities have location data`);
+      // Fetch detailed activities to get location data
+      const detailedActivities: StravaActivityDetailed[] = [];
+      for (const activity of activitiesWithCoords) {
+        try {
+          const detailed = await strava.getActivityWithRefresh(
+            activity.id.toString(),
+            athleteId
+          ) as unknown as StravaActivityDetailed;
+
+          if (detailed.location_country) {
+            detailedActivities.push(detailed);
+          }
+        } catch (error) {
+          console.error(`[Sync] Failed to fetch activity ${activity.id}:`, error);
+          // Continue with other activities
+        }
+      }
+
+      console.log(`[Sync] ${detailedActivities.length} of ${activitiesWithCoords.length} activities have location data`);
+
+      const locations = detailedActivities.map(a => extractLocationData(a, athleteId));
 
       if (locations.length > 0) {
         await prisma.activity.createMany({
