@@ -66,25 +66,26 @@ export async function syncActivities(athleteId: string): Promise<void> {
       const activitiesWithCoords = activities.filter(a => a.start_latlng && a.start_latlng.length === 2);
       console.log(`[Sync] ${activitiesWithCoords.length} of ${activities.length} activities have coordinates`);
 
-      // Check which activities we already have
+      // Check which activities we already have WITH location data
       const activityIds = activitiesWithCoords.map(a => a.id.toString());
       const existingActivities = await prisma.activity.findMany({
         where: {
           athleteId,
-          activityId: { in: activityIds }
+          activityId: { in: activityIds },
+          country: { not: 'Unknown' } // Only skip if we have real location data
         },
         select: { activityId: true }
       });
-      const existingIds = new Set(existingActivities.map(a => a.activityId));
-      const newActivities = activitiesWithCoords.filter(a => !existingIds.has(a.id.toString()));
+      const existingWithLocationIds = new Set(existingActivities.map(a => a.activityId));
+      const activitiesToFetch = activitiesWithCoords.filter(a => !existingWithLocationIds.has(a.id.toString()));
 
-      console.log(`[Sync] ${existingIds.size} activities already imported, ${newActivities.length} new activities to fetch`);
+      console.log(`[Sync] ${existingWithLocationIds.size} activities already have location data, ${activitiesToFetch.length} activities to fetch`);
 
       // Fetch detailed activities to get location data
       const detailedActivities: StravaActivityDetailed[] = [];
-      for (let i = 0; i < newActivities.length; i++) {
-        const activity = newActivities[i];
-        console.log(`[Sync] Fetching detailed activity ${i + 1}/${newActivities.length} (ID: ${activity.id})`);
+      for (let i = 0; i < activitiesToFetch.length; i++) {
+        const activity = activitiesToFetch[i];
+        console.log(`[Sync] Fetching detailed activity ${i + 1}/${activitiesToFetch.length} (ID: ${activity.id})`);
 
         try {
           const detailed = await strava.getActivityWithRefresh(
@@ -104,14 +105,23 @@ export async function syncActivities(athleteId: string): Promise<void> {
         }
       }
 
-      console.log(`[Sync] ${detailedActivities.length} of ${newActivities.length} new activities have location data`);
+      console.log(`[Sync] ${detailedActivities.length} of ${activitiesToFetch.length} fetched activities have location data`);
 
       const locations = detailedActivities.map(a => extractLocationData(a, athleteId));
 
       if (locations.length > 0) {
+        // Delete any existing records (those with country='Unknown') before inserting updates
+        const locationIds = locations.map(l => l.activityId);
+        await prisma.activity.deleteMany({
+          where: {
+            athleteId,
+            activityId: { in: locationIds }
+          }
+        });
+
+        // Insert all activities (new and updated)
         await prisma.activity.createMany({
-          data: locations,
-          skipDuplicates: true
+          data: locations
         });
         totalWithLocation += locations.length;
       }
