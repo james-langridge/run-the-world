@@ -16,7 +16,7 @@ export function SyncStatus({
   status: string;
   progress: number;
   syncTotal: number;
-  syncLastActivityAt: Date | null;
+  syncLastActivityAt: Date | string | null;
   athleteId: string;
 }) {
   const router = useRouter();
@@ -40,7 +40,8 @@ export function SyncStatus({
 
   // Detect if sync is stalled (no activity in last 5 minutes)
   const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-  const lastActivity = syncLastActivityAt || new Date(0); // If null, use epoch (very old)
+  // Convert to Date if it's a string (serialized from server component)
+  const lastActivity = syncLastActivityAt ? new Date(syncLastActivityAt) : new Date(0);
   const isPaused = lastActivity < fiveMinutesAgo;
 
   const displayStatus: SyncStatusDisplay = isPaused ? 'Paused' : 'In progress';
