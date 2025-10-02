@@ -73,12 +73,6 @@ export async function syncActivities(athleteId: string): Promise<void> {
   console.log('[Sync] Starting sync for athlete:', athleteId);
 
   try {
-    // Set initial message
-    await prisma.user.update({
-      where: { athleteId },
-      data: { syncMessage: 'Starting sync...' }
-    });
-
     while (true) {
       // Check if server is shutting down
       if (isServerShuttingDown()) {
@@ -87,14 +81,6 @@ export async function syncActivities(athleteId: string): Promise<void> {
       }
 
       console.log(`[Sync] Fetching page ${page} for athlete ${athleteId}`);
-
-      await prisma.user.update({
-        where: { athleteId },
-        data: { syncMessage: totalSynced > 0
-          ? `Fetching page ${page} (${totalSynced} activities processed so far)...`
-          : `Fetching page ${page}...`
-        }
-      });
 
       const activities = await retryWithBackoff(
         async () => strava.listAthleteActivitiesWithRefresh(
@@ -133,11 +119,6 @@ export async function syncActivities(athleteId: string): Promise<void> {
         const activity = activitiesToFetch[i];
         console.log(`[Sync] Fetching detailed activity ${i + 1}/${activitiesToFetch.length} (ID: ${activity.id})`);
 
-        await prisma.user.update({
-          where: { athleteId },
-          data: { syncMessage: `Page ${page}: Processing activity ${i + 1} of ${activitiesToFetch.length} (${totalSynced} total processed)...` }
-        });
-
         try {
           const detailed = await retryWithBackoff(
             async () => strava.getActivityWithRefresh(
@@ -174,11 +155,6 @@ export async function syncActivities(athleteId: string): Promise<void> {
         } catch (error) {
           if (error instanceof RateLimitError) {
             console.error(`[Sync]   ✗ Rate limit exceeded for activity ${activity.id}`);
-            const retryAfter = error.retryAfter ?? 900;
-            await prisma.user.update({
-              where: { athleteId },
-              data: { syncMessage: `Rate limit reached. Waiting ${Math.round(retryAfter / 60)} minutes before continuing...` }
-            });
             // Re-throw to stop this batch and wait
             throw error;
           }
@@ -217,7 +193,10 @@ export async function syncActivities(athleteId: string): Promise<void> {
 
       await prisma.user.update({
         where: { athleteId },
-        data: { syncProgress: totalSynced }
+        data: {
+          syncProgress: totalSynced,
+          syncStartedAt: new Date() // Update to show activity
+        }
       });
 
       console.log(`[Sync] Progress: ${totalSynced} total, ${totalWithLocation} with location`);
@@ -226,11 +205,6 @@ export async function syncActivities(athleteId: string): Promise<void> {
     }
 
     console.log('[Sync] Updating location stats for athlete:', athleteId);
-
-    await prisma.user.update({
-      where: { athleteId },
-      data: { syncMessage: 'Calculating location statistics...' }
-    });
 
     await updateLocationStats(athleteId);
 
@@ -241,8 +215,7 @@ export async function syncActivities(athleteId: string): Promise<void> {
       where: { athleteId },
       data: {
         syncStatus: 'COMPLETED',
-        lastSyncAt: new Date(),
-        syncMessage: null
+        lastSyncAt: new Date()
       }
     });
 
@@ -250,17 +223,10 @@ export async function syncActivities(athleteId: string): Promise<void> {
   } catch (error) {
     console.error('[Sync] Sync failed for athlete:', athleteId, error);
 
-    let errorMessage = 'Sync failed';
-    if (error instanceof RateLimitError) {
-      const retryAfter = error.retryAfter ?? 900;
-      errorMessage = `Rate limit exceeded. Try again in ${Math.round(retryAfter / 60)} minutes.`;
-    }
-
     await prisma.user.update({
       where: { athleteId },
       data: {
-        syncStatus: 'FAILED',
-        syncMessage: errorMessage
+        syncStatus: 'FAILED'
       }
     });
     throw error;
