@@ -67,13 +67,20 @@ async function retryWithBackoff<T>(
 
 export async function syncActivities(athleteId: string): Promise<void> {
   let page = 1;
-  let totalSynced = 0;
   let totalWithLocation = 0;
 
   const BATCH_SIZE = 20; // Insert activities every 20
   const PROGRESS_UPDATE_INTERVAL = 10; // Update progress every 10 activities
 
   console.log('[Sync] Starting sync for athlete:', athleteId);
+
+  // Get current progress for resuming
+  const user = await prisma.user.findUnique({
+    where: { athleteId },
+    select: { syncProgress: true }
+  });
+  let totalSynced = user?.syncProgress || 0;
+  console.log(`[Sync] Resuming from ${totalSynced} activities already processed`);
 
   try {
     // Fetch athlete stats to get total activity count
