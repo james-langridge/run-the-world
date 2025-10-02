@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { isRedirectError } from 'next/dist/client/components/redirect-error';
 import { strava } from '@/lib/strava/client';
 import { prisma } from '@/lib/db/prisma';
 
@@ -49,6 +50,10 @@ export default async function CallbackPage(props: {
 
     redirect(`/dashboard?athleteId=${athleteId}`);
   } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
     console.error('OAuth callback error:', error);
     return (
       <div className="flex min-h-screen items-center justify-center">
