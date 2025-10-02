@@ -4,44 +4,49 @@ View your Strava activities organized by location - countries and cities where y
 
 ## Local Development Setup
 
-### 1. Start Local PostgreSQL Database
-
-Start the local PostgreSQL database using Docker:
+### Quick Start (One Command)
 
 ```bash
-docker compose up -d
+npm run dev:local
 ```
 
-This starts PostgreSQL on `localhost:5432` with the database `runtheworld`.
+This will:
+1. Start PostgreSQL via Docker
+2. Run database migrations
+3. Start the development server
 
-### 2. Configure Environment
+### Manual Setup
 
-Copy `.env.example` to `.env` and update if needed:
+If you prefer to run each step manually:
 
+**1. Configure environment:**
 ```bash
 cp .env.example .env
 ```
 
-For local development with mock data, set:
-
+For local development with mock data, set in `.env`:
 ```env
 DATABASE_URL="postgresql://runtheworld:localdev@localhost:5432/runtheworld?schema=public"
 NEXT_PUBLIC_USE_MOCKS=true
 ```
 
-### 3. Run Database Migrations
-
+**2. Start everything:**
 ```bash
-npx prisma migrate dev
-```
-
-### 4. Start Development Server
-
-```bash
-npm run dev
+docker compose up -d          # Start PostgreSQL
+npx prisma migrate dev        # Run migrations
+npm run dev                   # Start dev server
 ```
 
 Open [http://localhost:3000](http://localhost:3000) - you'll see a "Continue with Mock Data" button that bypasses Strava OAuth and uses fake activity data.
+
+### Useful Commands
+
+```bash
+npm run dev:local    # Start database + migrations + dev server (all-in-one)
+npm run db:start     # Start PostgreSQL only
+npm run db:stop      # Stop PostgreSQL
+npm run db:reset     # Reset database (delete all data, recreate schema)
+```
 
 ### Mock Data
 
