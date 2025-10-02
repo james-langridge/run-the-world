@@ -27,12 +27,27 @@ export default async function DashboardPage(props: {
     redirect('/');
   }
 
-  const stats = await prisma.locationStat.findMany({
+  let stats = await prisma.locationStat.findMany({
     where: { athleteId },
     orderBy: { totalDistance: 'desc' }
   });
 
   const activityCount = await prisma.activity.count({ where: { athleteId } });
+
+  // If we have activities but no stats, calculate them
+  if (activityCount > 0 && stats.length === 0 && user.syncStatus === 'SYNCING') {
+    console.log('[Dashboard] Activities exist but no stats found, calculating stats...');
+
+    // Import the stats calculation function
+    const { updateLocationStats } = await import('@/lib/actions/sync');
+    await updateLocationStats(athleteId);
+
+    // Reload stats
+    stats = await prisma.locationStat.findMany({
+      where: { athleteId },
+      orderBy: { totalDistance: 'desc' }
+    });
+  }
 
   const totalCountries = new Set(stats.map(s => s.country)).size;
   const totalCities = stats.filter(s => s.city).length;

@@ -261,7 +261,8 @@ export async function syncActivities(athleteId: string): Promise<void> {
       // Flush any remaining activities in the batch
       await flushBatch(batchBuffer);
 
-      totalSynced += activities.length;
+      // Update total with activities actually processed in this page
+      totalSynced += activitiesProcessedInPage;
       page++;
 
       // Final progress update for this page
@@ -307,7 +308,7 @@ export async function syncActivities(athleteId: string): Promise<void> {
   }
 }
 
-async function updateLocationStats(athleteId: string): Promise<void> {
+export async function updateLocationStats(athleteId: string): Promise<void> {
   const activities = await prisma.activity.findMany({
     where: { athleteId }
   });
