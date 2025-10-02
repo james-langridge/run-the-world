@@ -30,21 +30,6 @@ export default async function DashboardPage(props: {
     redirect('/');
   }
 
-  // Check for stale sync (stuck in SYNCING for more than 20 minutes)
-  if (user.syncStatus === 'SYNCING') {
-    const twentyMinutesAgo = new Date(Date.now() - 20 * 60 * 1000);
-    const syncTime = user.syncStartedAt || user.lastSyncAt;
-
-    if (syncTime && syncTime < twentyMinutesAgo) {
-      console.log('[Dashboard] Detected stale sync, marking as FAILED');
-      await prisma.user.update({
-        where: { athleteId },
-        data: { syncStatus: 'FAILED' }
-      });
-      user.syncStatus = 'FAILED';
-    }
-  }
-
   const stats = await prisma.locationStat.findMany({
     where: { athleteId },
     orderBy: { totalDistance: 'desc' }
@@ -85,7 +70,7 @@ export default async function DashboardPage(props: {
               Welcome! Let&apos;s sync your activities
             </h2>
             <p className="text-gray-600 dark:text-gray-300 mb-6">
-              Click below to start importing your Strava activities. This may take a few minutes.
+              Click below to start importing your Strava activities. Due to Strava&apos;s rate limits, this may take several hours for large activity histories.
             </p>
             <SyncButton athleteId={athleteId} />
           </div>
@@ -96,23 +81,28 @@ export default async function DashboardPage(props: {
         {user.syncStatus === 'FAILED' && (
           <div className="bg-red-50 dark:bg-red-900/20 rounded-lg shadow p-8 text-center">
             <h2 className="text-xl font-semibold text-red-900 dark:text-red-300 mb-4">
-              Sync failed or was interrupted
+              Sync stopped
             </h2>
-            <p className="text-red-700 dark:text-red-400 mb-6">
-              The sync may have been interrupted by a deployment or encountered an error. Click below to try again.
+            <p className="text-red-700 dark:text-red-400 mb-2">
+              The sync was interrupted (possibly by a deployment) or encountered an error.
+            </p>
+            <p className="text-sm text-red-600 dark:text-red-500 mb-6">
+              Your data has been preserved. Click &quot;Resume Sync&quot; to continue importing activities.
             </p>
             <div className="flex gap-4 justify-center">
-              <SyncButton athleteId={athleteId} />
+              <SyncButton athleteId={athleteId} isResume={true} />
               <ClearResyncButton athleteId={athleteId} />
             </div>
           </div>
         )}
 
-        {user.syncStatus === 'COMPLETED' && stats.length > 0 && (
+        {(user.syncStatus === 'COMPLETED' || user.syncStatus === 'SYNCING') && stats.length > 0 && (
           <div className="space-y-6">
-            <div className="flex justify-end">
-              <ClearResyncButton athleteId={athleteId} />
-            </div>
+            {user.syncStatus === 'COMPLETED' && (
+              <div className="flex justify-end">
+                <ClearResyncButton athleteId={athleteId} />
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
                 <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Countries</div>

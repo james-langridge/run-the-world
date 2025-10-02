@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-export function SyncButton({ athleteId }: { athleteId: string }) {
+export function SyncButton({ athleteId, isResume = false }: { athleteId: string; isResume?: boolean }) {
   const [isSyncing, setIsSyncing] = useState(false);
   const router = useRouter();
 
@@ -28,13 +28,15 @@ export function SyncButton({ athleteId }: { athleteId: string }) {
     }
   }
 
+  const buttonText = isSyncing ? 'Starting...' : (isResume ? 'Resume Sync' : 'Sync Activities');
+
   return (
     <button
       onClick={handleSync}
       disabled={isSyncing}
       className="bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white font-semibold py-3 px-8 rounded-lg transition-colors"
     >
-      {isSyncing ? 'Starting sync...' : 'Sync Activities'}
+      {buttonText}
     </button>
   );
 }
