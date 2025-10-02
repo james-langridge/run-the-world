@@ -66,11 +66,25 @@ export async function syncActivities(athleteId: string): Promise<void> {
       const activitiesWithCoords = activities.filter(a => a.start_latlng && a.start_latlng.length === 2);
       console.log(`[Sync] ${activitiesWithCoords.length} of ${activities.length} activities have coordinates`);
 
+      // Check which activities we already have
+      const activityIds = activitiesWithCoords.map(a => a.id.toString());
+      const existingActivities = await prisma.activity.findMany({
+        where: {
+          athleteId,
+          activityId: { in: activityIds }
+        },
+        select: { activityId: true }
+      });
+      const existingIds = new Set(existingActivities.map(a => a.activityId));
+      const newActivities = activitiesWithCoords.filter(a => !existingIds.has(a.id.toString()));
+
+      console.log(`[Sync] ${existingIds.size} activities already imported, ${newActivities.length} new activities to fetch`);
+
       // Fetch detailed activities to get location data
       const detailedActivities: StravaActivityDetailed[] = [];
-      for (let i = 0; i < activitiesWithCoords.length; i++) {
-        const activity = activitiesWithCoords[i];
-        console.log(`[Sync] Fetching detailed activity ${i + 1}/${activitiesWithCoords.length} (ID: ${activity.id})`);
+      for (let i = 0; i < newActivities.length; i++) {
+        const activity = newActivities[i];
+        console.log(`[Sync] Fetching detailed activity ${i + 1}/${newActivities.length} (ID: ${activity.id})`);
 
         try {
           const detailed = await strava.getActivityWithRefresh(
@@ -90,7 +104,7 @@ export async function syncActivities(athleteId: string): Promise<void> {
         }
       }
 
-      console.log(`[Sync] ${detailedActivities.length} of ${activitiesWithCoords.length} activities have location data`);
+      console.log(`[Sync] ${detailedActivities.length} of ${newActivities.length} new activities have location data`);
 
       const locations = detailedActivities.map(a => extractLocationData(a, athleteId));
 
