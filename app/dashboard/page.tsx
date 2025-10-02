@@ -32,10 +32,12 @@ export default async function DashboardPage(props: {
     orderBy: { totalDistance: 'desc' }
   });
 
+  // Use actual activity count from DB as the true progress
   const activityCount = await prisma.activity.count({ where: { athleteId } });
+  const syncProgress = activityCount; // True progress = activities in DB
 
   // If we have activities but no stats, calculate them
-  if (activityCount > 0 && stats.length === 0 && user.syncStatus === 'SYNCING') {
+  if (activityCount > 0 && stats.length === 0 && (user.syncStatus === 'SYNCING' || user.syncStatus === 'FAILED')) {
     console.log('[Dashboard] Activities exist but no stats found, calculating stats...');
 
     // Import the stats calculation function
@@ -85,7 +87,7 @@ export default async function DashboardPage(props: {
           </div>
         )}
 
-        <SyncStatus status={user.syncStatus} progress={user.syncProgress} syncTotal={user.syncTotal} syncLastActivityAt={user.syncLastActivityAt} athleteId={athleteId} />
+        <SyncStatus status={user.syncStatus} progress={syncProgress} syncTotal={user.syncTotal} syncLastActivityAt={user.syncLastActivityAt} athleteId={athleteId} />
 
         {user.syncStatus === 'SYNCING' && activityCount > 0 && stats.length === 0 && (
           <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg shadow p-6 text-center">
@@ -114,7 +116,7 @@ export default async function DashboardPage(props: {
           </div>
         )}
 
-        {(user.syncStatus === 'COMPLETED' || user.syncStatus === 'SYNCING') && stats.length > 0 && (
+        {stats.length > 0 && (
           <div className="space-y-6">
             {user.syncStatus === 'COMPLETED' && (
               <div className="flex justify-end">
@@ -156,7 +158,7 @@ export default async function DashboardPage(props: {
             </p>
             <p className="text-sm text-yellow-600 dark:text-yellow-500 mb-6">
               Last sync: {user.lastSyncAt ? new Date(user.lastSyncAt).toLocaleString() : 'Never'} |
-              Activities processed: {user.syncProgress}
+              Activities processed: {syncProgress}
             </p>
             <div className="flex gap-4 justify-center">
               <SyncButton athleteId={athleteId} />
