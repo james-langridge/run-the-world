@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db/prisma';
 import { SyncButton } from '@/components/sync-button';
+import { SyncStatus } from '@/components/sync-status';
 import { LocationStats } from '@/components/location-stats';
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
@@ -74,17 +75,7 @@ export default async function DashboardPage(props: {
           </div>
         )}
 
-        {user.syncStatus === 'SYNCING' && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-              Syncing your activities...
-            </h2>
-            <p className="text-gray-600 dark:text-gray-300">
-              {user.syncProgress > 0 ? `${user.syncProgress} activities processed` : 'Starting sync...'}
-            </p>
-          </div>
-        )}
+        <SyncStatus status={user.syncStatus} progress={user.syncProgress} />
 
         {user.syncStatus === 'FAILED' && (
           <div className="bg-red-50 dark:bg-red-900/20 rounded-lg shadow p-8 text-center">
