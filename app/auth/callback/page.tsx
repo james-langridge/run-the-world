@@ -26,14 +26,6 @@ export default async function CallbackPage(props: {
     const tokens = await strava.oauth.exchangeCode(code);
     const athleteId = tokens.athlete.id.toString();
 
-    await strava.storage.saveTokens(athleteId, {
-      athleteId,
-      accessToken: tokens.access_token,
-      refreshToken: tokens.refresh_token,
-      expiresAt: new Date(tokens.expires_at * 1000),
-      scopes: scope.split(',')
-    });
-
     await prisma.user.upsert({
       where: { athleteId },
       create: {
@@ -45,6 +37,14 @@ export default async function CallbackPage(props: {
         firstName: tokens.athlete.firstname || 'Unknown',
         lastName: tokens.athlete.lastname || ''
       }
+    });
+
+    await strava.storage.saveTokens(athleteId, {
+      athleteId,
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token,
+      expiresAt: new Date(tokens.expires_at * 1000),
+      scopes: scope.split(',')
     });
 
     redirect(`/dashboard?athleteId=${athleteId}`);
