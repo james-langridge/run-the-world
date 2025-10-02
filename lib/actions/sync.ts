@@ -53,6 +53,12 @@ export async function syncActivities(athleteId: string): Promise<void> {
   console.log('[Sync] Starting sync for athlete:', athleteId);
 
   try {
+    // Set initial message
+    await prisma.user.update({
+      where: { athleteId },
+      data: { syncMessage: 'Starting sync...' }
+    });
+
     while (true) {
       // Check if server is shutting down
       if (isServerShuttingDown()) {
@@ -61,6 +67,11 @@ export async function syncActivities(athleteId: string): Promise<void> {
       }
 
       console.log(`[Sync] Fetching page ${page} for athlete ${athleteId}`);
+
+      await prisma.user.update({
+        where: { athleteId },
+        data: { syncMessage: `Fetching activities page ${page}...` }
+      });
 
       const activities = await strava.listAthleteActivitiesWithRefresh(
         athleteId,
@@ -95,6 +106,11 @@ export async function syncActivities(athleteId: string): Promise<void> {
       for (let i = 0; i < activitiesToFetch.length; i++) {
         const activity = activitiesToFetch[i];
         console.log(`[Sync] Fetching detailed activity ${i + 1}/${activitiesToFetch.length} (ID: ${activity.id})`);
+
+        await prisma.user.update({
+          where: { athleteId },
+          data: { syncMessage: `Processing activity ${i + 1} of ${activitiesToFetch.length} on page ${page}...` }
+        });
 
         try {
           const detailed = await strava.getActivityWithRefresh(
@@ -167,6 +183,12 @@ export async function syncActivities(athleteId: string): Promise<void> {
     }
 
     console.log('[Sync] Updating location stats for athlete:', athleteId);
+
+    await prisma.user.update({
+      where: { athleteId },
+      data: { syncMessage: 'Calculating location statistics...' }
+    });
+
     await updateLocationStats(athleteId);
 
     const stats = await prisma.locationStat.count({ where: { athleteId } });
@@ -176,7 +198,8 @@ export async function syncActivities(athleteId: string): Promise<void> {
       where: { athleteId },
       data: {
         syncStatus: 'COMPLETED',
-        lastSyncAt: new Date()
+        lastSyncAt: new Date(),
+        syncMessage: null
       }
     });
 

@@ -24,6 +24,7 @@ model User {
   lastSyncAt    DateTime?
   syncStatus    String   @default("NOT_STARTED")
   syncProgress  Int      @default(0)
+  syncMessage   String?
 
   tokens      Token?
   activities  Activity[]

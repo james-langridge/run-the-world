@@ -91,7 +91,7 @@ export default async function DashboardPage(props: {
           </div>
         )}
 
-        <SyncStatus status={user.syncStatus} progress={user.syncProgress} />
+        <SyncStatus status={user.syncStatus} progress={user.syncProgress} message={user.syncMessage} />
 
         {user.syncStatus === 'FAILED' && (
           <div className="bg-red-50 dark:bg-red-900/20 rounded-lg shadow p-8 text-center">

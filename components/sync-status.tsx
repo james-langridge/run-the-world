@@ -5,10 +5,12 @@ import { useRouter } from 'next/navigation';
 
 export function SyncStatus({
   status,
-  progress
+  progress,
+  message
 }: {
   status: string;
   progress: number;
+  message?: string | null;
 }) {
   const router = useRouter();
 
@@ -31,7 +33,7 @@ export function SyncStatus({
         Syncing your activities...
       </h2>
       <p className="text-gray-600 dark:text-gray-300 mb-2">
-        {progress > 0 ? `${progress} activities processed` : 'Starting sync...'}
+        {message || (progress > 0 ? `${progress} activities processed` : 'Starting sync...')}
       </p>
       <p className="text-sm text-gray-500 dark:text-gray-400">
         This page will auto-refresh every 3 seconds

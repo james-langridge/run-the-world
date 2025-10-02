@@ -28,7 +28,8 @@ export async function POST(request: NextRequest) {
       data: {
         syncStatus: 'SYNCING',
         syncProgress: 0,
-        syncStartedAt: new Date()
+        syncStartedAt: new Date(),
+        syncMessage: 'Starting fresh sync...'
       }
     });
 
