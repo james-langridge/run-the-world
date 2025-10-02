@@ -19,12 +19,7 @@ export default async function DashboardPage(props: {
   }
 
   const user = await prisma.user.findUnique({
-    where: { athleteId },
-    include: {
-      activities: {
-        take: 1
-      }
-    }
+    where: { athleteId }
   });
 
   if (!user) {
@@ -35,6 +30,8 @@ export default async function DashboardPage(props: {
     where: { athleteId },
     orderBy: { totalDistance: 'desc' }
   });
+
+  const activityCount = await prisma.activity.count({ where: { athleteId } });
 
   const totalCountries = new Set(stats.map(s => s.country)).size;
   const totalCities = stats.filter(s => s.city).length;
@@ -79,10 +76,10 @@ export default async function DashboardPage(props: {
 
         <SyncStatus status={user.syncStatus} progress={user.syncProgress} message={user.syncMessage} />
 
-        {user.syncStatus === 'SYNCING' && user.syncProgress > 0 && stats.length === 0 && (
+        {user.syncStatus === 'SYNCING' && activityCount > 0 && stats.length === 0 && (
           <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg shadow p-6 text-center">
             <p className="text-yellow-800 dark:text-yellow-300 mb-3">
-              Activities are importing but stats haven&apos;t been calculated yet.
+              {activityCount} {activityCount === 1 ? 'activity has' : 'activities have'} been imported but stats haven&apos;t been calculated yet.
             </p>
             <UpdateStatsButton athleteId={athleteId} />
           </div>
