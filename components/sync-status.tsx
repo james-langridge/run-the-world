@@ -93,7 +93,7 @@ export function SyncStatus({
             'Check Sync Status'
           )}
         </button>
-        <SyncButton athleteId={athleteId} isResume={true} />
+        {isPaused && <SyncButton athleteId={athleteId} isResume={true} />}
       </div>
     </div>
   );
