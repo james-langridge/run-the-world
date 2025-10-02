@@ -43,7 +43,7 @@ export async function syncActivities(athleteId: string): Promise<void> {
 
   try {
     while (true) {
-      const activities = await strava.api.getAthleteActivities(
+      const activities = await strava.listAthleteActivitiesWithRefresh(
         athleteId,
         { per_page: 200, page }
       ) as unknown as StravaActivity[];

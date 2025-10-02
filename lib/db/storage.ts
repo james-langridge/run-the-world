@@ -21,6 +21,8 @@ export class PrismaTokenStorage implements TokenStorage {
   }
 
   async saveTokens(athleteId: string, tokens: StoredTokens): Promise<void> {
+    const scopes = tokens.scopes ? Array.from(tokens.scopes) : [];
+
     await this.prisma.token.upsert({
       where: { athleteId },
       create: {
@@ -28,13 +30,13 @@ export class PrismaTokenStorage implements TokenStorage {
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
         expiresAt: tokens.expiresAt,
-        scopes: tokens.scopes
+        scopes
       },
       update: {
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
         expiresAt: tokens.expiresAt,
-        scopes: tokens.scopes
+        scopes
       }
     });
   }

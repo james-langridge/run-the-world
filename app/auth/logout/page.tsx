@@ -11,7 +11,7 @@ export default async function LogoutPage(props: {
 
   if (athleteId) {
     try {
-      await strava.auth.deauthorize(athleteId);
+      await strava.storage.deleteTokens(athleteId);
     } catch (error) {
       console.error('Logout error:', error);
     }

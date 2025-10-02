@@ -1,8 +1,8 @@
 import { strava } from '@/lib/strava/client';
 
 export default function Home() {
-  const authUrl = strava.auth.getAuthorizationUrl({
-    scope: ['activity:read_all']
+  const authUrl = strava.oauth.getAuthUrl({
+    scopes: ['activity:read_all']
   });
 
   return (

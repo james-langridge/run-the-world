@@ -23,27 +23,31 @@ export default async function CallbackPage(props: {
   }
 
   try {
-    const tokens = await strava.auth.exchangeToken(code);
-    const athlete = tokens.athlete;
+    const tokens = await strava.oauth.exchangeCode(code);
+    const athleteId = tokens.athlete.id.toString();
+
+    await strava.storage.saveTokens(athleteId, {
+      athleteId,
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token,
+      expiresAt: new Date(tokens.expires_at * 1000),
+      scopes: scope.split(',')
+    });
 
     await prisma.user.upsert({
-      where: { athleteId: athlete.id.toString() },
+      where: { athleteId },
       create: {
-        athleteId: athlete.id.toString(),
-        firstName: athlete.firstname,
-        lastName: athlete.lastname,
-        email: athlete.email || null,
-        profileImage: athlete.profile || null
+        athleteId,
+        firstName: tokens.athlete.firstname || 'Unknown',
+        lastName: tokens.athlete.lastname || ''
       },
       update: {
-        firstName: athlete.firstname,
-        lastName: athlete.lastname,
-        email: athlete.email || null,
-        profileImage: athlete.profile || null
+        firstName: tokens.athlete.firstname || 'Unknown',
+        lastName: tokens.athlete.lastname || ''
       }
     });
 
-    redirect(`/dashboard?athleteId=${athlete.id}`);
+    redirect(`/dashboard?athleteId=${athleteId}`);
   } catch (error) {
     console.error('OAuth callback error:', error);
     return (
