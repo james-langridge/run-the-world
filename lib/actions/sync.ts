@@ -90,7 +90,10 @@ export async function syncActivities(athleteId: string): Promise<void> {
 
       await prisma.user.update({
         where: { athleteId },
-        data: { syncMessage: `Fetching activities page ${page}...` }
+        data: { syncMessage: totalSynced > 0
+          ? `Fetching page ${page} (${totalSynced} activities processed so far)...`
+          : `Fetching page ${page}...`
+        }
       });
 
       const activities = await retryWithBackoff(
@@ -132,7 +135,7 @@ export async function syncActivities(athleteId: string): Promise<void> {
 
         await prisma.user.update({
           where: { athleteId },
-          data: { syncMessage: `Processing activity ${i + 1} of ${activitiesToFetch.length} on page ${page}...` }
+          data: { syncMessage: `Page ${page}: Processing activity ${i + 1} of ${activitiesToFetch.length} (${totalSynced} total processed)...` }
         });
 
         try {
