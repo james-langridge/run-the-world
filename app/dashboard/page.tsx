@@ -4,6 +4,7 @@ import { SyncButton } from '@/components/sync-button';
 import { ClearResyncButton } from '@/components/clear-resync-button';
 import { SyncStatus } from '@/components/sync-status';
 import { LocationStats } from '@/components/location-stats';
+import { UpdateStatsButton } from '@/components/update-stats-button';
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
@@ -77,6 +78,15 @@ export default async function DashboardPage(props: {
         )}
 
         <SyncStatus status={user.syncStatus} progress={user.syncProgress} message={user.syncMessage} />
+
+        {user.syncStatus === 'SYNCING' && user.syncProgress > 0 && stats.length === 0 && (
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg shadow p-6 text-center">
+            <p className="text-yellow-800 dark:text-yellow-300 mb-3">
+              Activities are importing but stats haven&apos;t been calculated yet.
+            </p>
+            <UpdateStatsButton athleteId={athleteId} />
+          </div>
+        )}
 
         {user.syncStatus === 'FAILED' && (
           <div className="bg-red-50 dark:bg-red-900/20 rounded-lg shadow p-8 text-center">

@@ -206,6 +206,10 @@ export async function syncActivities(athleteId: string): Promise<void> {
           data: locations
         });
         totalWithLocation += locations.length;
+
+        // Update location stats incrementally so data appears in UI
+        console.log('[Sync] Updating location stats...');
+        await updateLocationStats(athleteId);
       }
 
       totalSynced += activities.length;
