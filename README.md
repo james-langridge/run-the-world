@@ -68,6 +68,38 @@ To remove the database volume (reset all data):
 docker compose down -v
 ```
 
+## Production Deployment (Railway)
+
+### Automatic Migrations on Deploy
+
+The `nixpacks.toml` configuration runs migrations automatically before starting the app:
+
+```toml
+[start]
+cmd = 'npx prisma migrate deploy && npm run start'
+```
+
+**How it works:**
+1. Push to `main` branch on GitHub
+2. Railway detects the push and starts deployment
+3. Runs `npm ci` to install dependencies
+4. Runs `npm run build` to build the app
+5. **Runs `npx prisma migrate deploy`** ← Migrations happen here
+6. Starts the app with `npm run start`
+
+**Setup (one-time):**
+- Ensure `DATABASE_URL` is set in Railway environment variables
+- That's it! Migrations run automatically on every deploy
+
+### Manual Migrations (if needed)
+
+Run migrations manually for emergency fixes:
+
+```bash
+# Connect to production database
+DATABASE_URL="your-railway-db-url" npm run db:migrate
+```
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
