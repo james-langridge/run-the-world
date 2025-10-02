@@ -227,7 +227,7 @@ export async function syncActivities(athleteId: string): Promise<void> {
               where: { athleteId },
               data: {
                 syncProgress: totalSynced + activitiesProcessedInPage,
-                syncStartedAt: new Date()
+                syncLastActivityAt: new Date()
               }
             });
             console.log(`[Sync] Progress update: ${totalSynced + activitiesProcessedInPage} activities processed`);
@@ -262,7 +262,7 @@ export async function syncActivities(athleteId: string): Promise<void> {
         where: { athleteId },
         data: {
           syncProgress: totalSynced,
-          syncStartedAt: new Date()
+          syncLastActivityAt: new Date()
         }
       });
 

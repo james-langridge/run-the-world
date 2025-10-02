@@ -26,7 +26,8 @@ export async function POST(request: NextRequest) {
       data: {
         syncStatus: 'SYNCING',
         syncProgress: user?.syncProgress || 0, // Preserve existing progress
-        syncStartedAt: new Date()
+        syncStartedAt: new Date(),
+        syncLastActivityAt: new Date()
       }
     });
 
