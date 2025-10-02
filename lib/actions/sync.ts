@@ -70,6 +70,9 @@ export async function syncActivities(athleteId: string): Promise<void> {
   let totalSynced = 0;
   let totalWithLocation = 0;
 
+  const BATCH_SIZE = 20; // Insert activities every 20
+  const PROGRESS_UPDATE_INTERVAL = 10; // Update progress every 10 activities
+
   console.log('[Sync] Starting sync for athlete:', athleteId);
 
   try {
@@ -104,6 +107,33 @@ export async function syncActivities(athleteId: string): Promise<void> {
       });
     } catch (error) {
       console.error('[Sync] Failed to fetch athlete stats, continuing without total:', error);
+    }
+
+    // Helper function to insert batch and update stats
+    async function flushBatch(batch: StravaActivity[]): Promise<void> {
+      if (batch.length === 0) return;
+
+      const locations = batch.map(a => extractLocationData(a, athleteId));
+
+      // Delete any existing records before inserting updates
+      const locationIds = locations.map(l => l.activityId);
+      await prisma.activity.deleteMany({
+        where: {
+          athleteId,
+          activityId: { in: locationIds }
+        }
+      });
+
+      // Insert all activities in batch
+      await prisma.activity.createMany({
+        data: locations
+      });
+
+      totalWithLocation += locations.length;
+
+      // Update location stats so data appears in UI
+      console.log(`[Sync] Batch inserted ${locations.length} activities, updating stats...`);
+      await updateLocationStats(athleteId);
     }
 
     while (true) {
@@ -146,8 +176,11 @@ export async function syncActivities(athleteId: string): Promise<void> {
 
       console.log(`[Sync] ${existingWithLocationIds.size} activities already have location data, ${activitiesToFetch.length} activities to fetch`);
 
+      // Batch processing
+      let batchBuffer: StravaActivity[] = [];
+      let activitiesProcessedInPage = 0;
+
       // Fetch detailed activities to get location data
-      const detailedActivities: StravaActivity[] = [];
       for (let i = 0; i < activitiesToFetch.length; i++) {
         const activity = activitiesToFetch[i];
         console.log(`[Sync] Fetching detailed activity ${i + 1}/${activitiesToFetch.length} (ID: ${activity.id})`);
@@ -174,21 +207,43 @@ export async function syncActivities(athleteId: string): Promise<void> {
               detailed.location_city = geocoded.city;
               detailed.location_state = geocoded.state;
 
-              detailedActivities.push(detailed);
+              batchBuffer.push(detailed);
               console.log(`[Sync]   ✓ Activity ${activity.id} geocoded: ${geocoded.city || 'Unknown city'}, ${geocoded.country}`);
             } else {
               console.log(`[Sync]   ✗ Activity ${activity.id} geocoding failed, no country found`);
             }
           } else if (detailed.location_country) {
-            detailedActivities.push(detailed);
+            batchBuffer.push(detailed);
             console.log(`[Sync]   ✓ Activity ${activity.id} has Strava location: ${detailed.location_city || 'Unknown city'}, ${detailed.location_country}`);
           } else {
             console.log(`[Sync]   ✗ Activity ${activity.id} has no coordinates for geocoding`);
           }
+
+          activitiesProcessedInPage++;
+
+          // Update progress every PROGRESS_UPDATE_INTERVAL activities
+          if (activitiesProcessedInPage % PROGRESS_UPDATE_INTERVAL === 0) {
+            await prisma.user.update({
+              where: { athleteId },
+              data: {
+                syncProgress: totalSynced + activitiesProcessedInPage,
+                syncStartedAt: new Date()
+              }
+            });
+            console.log(`[Sync] Progress update: ${totalSynced + activitiesProcessedInPage} activities processed`);
+          }
+
+          // Flush batch when it reaches BATCH_SIZE
+          if (batchBuffer.length >= BATCH_SIZE) {
+            await flushBatch(batchBuffer);
+            batchBuffer = [];
+          }
+
         } catch (error) {
           if (error instanceof RateLimitError) {
             console.error(`[Sync]   ✗ Rate limit exceeded for activity ${activity.id}`);
-            // Re-throw to stop this batch and wait
+            // Flush current batch before throwing
+            await flushBatch(batchBuffer);
             throw error;
           }
           console.error(`[Sync]   ✗ Failed to fetch activity ${activity.id}:`, error);
@@ -196,43 +251,22 @@ export async function syncActivities(athleteId: string): Promise<void> {
         }
       }
 
-      console.log(`[Sync] ${detailedActivities.length} of ${activitiesToFetch.length} fetched activities have location data`);
-
-      const locations = detailedActivities.map(a => extractLocationData(a, athleteId));
-
-      if (locations.length > 0) {
-        // Delete any existing records (those with country='Unknown') before inserting updates
-        const locationIds = locations.map(l => l.activityId);
-        await prisma.activity.deleteMany({
-          where: {
-            athleteId,
-            activityId: { in: locationIds }
-          }
-        });
-
-        // Insert all activities (new and updated)
-        await prisma.activity.createMany({
-          data: locations
-        });
-        totalWithLocation += locations.length;
-
-        // Update location stats incrementally so data appears in UI
-        console.log('[Sync] Updating location stats...');
-        await updateLocationStats(athleteId);
-      }
+      // Flush any remaining activities in the batch
+      await flushBatch(batchBuffer);
 
       totalSynced += activities.length;
       page++;
 
+      // Final progress update for this page
       await prisma.user.update({
         where: { athleteId },
         data: {
           syncProgress: totalSynced,
-          syncStartedAt: new Date() // Update to show activity
+          syncStartedAt: new Date()
         }
       });
 
-      console.log(`[Sync] Progress: ${totalSynced} total, ${totalWithLocation} with location`);
+      console.log(`[Sync] Page complete. Progress: ${totalSynced} total, ${totalWithLocation} with location`);
 
       await sleep(1000);
     }
