@@ -31,9 +31,11 @@ export default async function DashboardPage(props: {
   }
 
   // Check for stale sync (stuck in SYNCING for more than 20 minutes)
-  if (user.syncStatus === 'SYNCING' && user.syncStartedAt) {
+  if (user.syncStatus === 'SYNCING') {
     const twentyMinutesAgo = new Date(Date.now() - 20 * 60 * 1000);
-    if (user.syncStartedAt < twentyMinutesAgo) {
+    const syncTime = user.syncStartedAt || user.lastSyncAt;
+
+    if (syncTime && syncTime < twentyMinutesAgo) {
       console.log('[Dashboard] Detected stale sync, marking as FAILED');
       await prisma.user.update({
         where: { athleteId },
