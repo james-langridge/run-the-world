@@ -1,9 +1,10 @@
 import { strava } from '@/lib/strava/client';
 
 export default function Home() {
-  const authUrl = strava.oauth.getAuthUrl({
-    scopes: ['activity:read_all']
-  });
+  const useMocks = process.env.NEXT_PUBLIC_USE_MOCKS === 'true';
+  const authUrl = useMocks
+    ? '/auth/callback?mock=true'
+    : strava.oauth.getAuthUrl({ scopes: ['activity:read_all'] });
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-orange-50 to-white dark:from-gray-900 dark:to-gray-800">
@@ -19,10 +20,12 @@ export default function Home() {
             href={authUrl}
             className="inline-block bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors"
           >
-            Connect with Strava
+            {useMocks ? 'Continue with Mock Data' : 'Connect with Strava'}
           </a>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            View your activities by country, city, and activity type
+            {useMocks
+              ? 'Using mock data for local development'
+              : 'View your activities by country, city, and activity type'}
           </p>
         </div>
       </div>
