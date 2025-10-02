@@ -44,7 +44,8 @@ export async function reverseGeocode(lat: number, lng: number): Promise<Location
       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10&addressdetails=1`,
       {
         headers: {
-          'User-Agent': 'RunTheWorld/1.0 (Strava activity location tracker)'
+          'User-Agent': 'RunTheWorld/1.0 (Strava activity location tracker)',
+          'Accept-Language': 'en' // Force English language responses
         }
       }
     );
