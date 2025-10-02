@@ -1,24 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Run The World
 
-## Getting Started
+View your Strava activities organized by location - countries and cities where you've been active.
 
-First, run the development server:
+## Local Development Setup
+
+### 1. Start Local PostgreSQL Database
+
+Start the local PostgreSQL database using Docker:
+
+```bash
+docker compose up -d
+```
+
+This starts PostgreSQL on `localhost:5432` with the database `runtheworld`.
+
+### 2. Configure Environment
+
+Copy `.env.example` to `.env` and update if needed:
+
+```bash
+cp .env.example .env
+```
+
+For local development with mock data, set:
+
+```env
+DATABASE_URL="postgresql://runtheworld:localdev@localhost:5432/runtheworld?schema=public"
+NEXT_PUBLIC_USE_MOCKS=true
+```
+
+### 3. Run Database Migrations
+
+```bash
+npx prisma migrate dev
+```
+
+### 4. Start Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) - you'll see a "Continue with Mock Data" button that bypasses Strava OAuth and uses fake activity data.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Mock Data
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+When `NEXT_PUBLIC_USE_MOCKS=true`:
+- No Strava API calls are made
+- 500 realistic activities are generated across 10 cities worldwide
+- No rate limits
+- Perfect for UI development and testing
+
+### Stopping Local Database
+
+```bash
+docker compose down
+```
+
+To remove the database volume (reset all data):
+
+```bash
+docker compose down -v
+```
 
 ## Learn More
 
