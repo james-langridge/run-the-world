@@ -150,6 +150,17 @@ export async function syncActivities(athleteId: string): Promise<void> {
         return;
       }
 
+      // Check if user still exists (could have been deleted)
+      const userExists = await prisma.user.findUnique({
+        where: { athleteId },
+        select: { athleteId: true }
+      });
+
+      if (!userExists) {
+        console.log('[Sync] User has been deleted, stopping sync');
+        return;
+      }
+
       console.log(`[Sync] Fetching page ${page} for athlete ${athleteId}`);
 
       const activities = await retryWithBackoff(
@@ -253,6 +264,13 @@ export async function syncActivities(athleteId: string): Promise<void> {
             await flushBatch(batchBuffer);
             throw error;
           }
+
+          // Check if user was deleted (token error)
+          if (error instanceof Error && error.message.includes('No tokens found')) {
+            console.log(`[Sync] User deleted during sync, stopping gracefully`);
+            return;
+          }
+
           console.error(`[Sync]   ✗ Failed to fetch activity ${activity.id}:`, error);
           // Continue with other activities for non-rate-limit errors
         }
@@ -296,14 +314,26 @@ export async function syncActivities(athleteId: string): Promise<void> {
 
     console.log('[Sync] Sync completed successfully for athlete:', athleteId);
   } catch (error) {
+    // If user was deleted, exit gracefully without updating status
+    if (error instanceof Error && error.message.includes('No tokens found')) {
+      console.log('[Sync] User was deleted, exiting sync gracefully');
+      return;
+    }
+
     console.error('[Sync] Sync failed for athlete:', athleteId, error);
 
-    await prisma.user.update({
-      where: { athleteId },
-      data: {
-        syncStatus: 'FAILED'
-      }
-    });
+    // Try to update user status to FAILED (user might have been deleted)
+    try {
+      await prisma.user.update({
+        where: { athleteId },
+        data: {
+          syncStatus: 'FAILED'
+        }
+      });
+    } catch {
+      console.log('[Sync] Could not update user status (user may have been deleted)');
+    }
+
     throw error;
   }
 }
