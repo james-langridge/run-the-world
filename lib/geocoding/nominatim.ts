@@ -24,7 +24,7 @@ interface LocationData {
 }
 
 let lastRequestTime = 0;
-const MIN_REQUEST_INTERVAL = 1000; // 1 second between requests
+const MIN_REQUEST_INTERVAL = process.env.NEXT_PUBLIC_USE_MOCKS === 'true' ? 0 : 1000; // No delay in dev, 1 second in prod
 
 async function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));

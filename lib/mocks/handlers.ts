@@ -117,5 +117,30 @@ export const handlers = [
       bikes: [],
       shoes: []
     });
+  }),
+
+  // Nominatim reverse geocoding
+  http.get('https://nominatim.openstreetmap.org/reverse', async ({ request }) => {
+    await delay(MOCK_DELAY_MS);
+
+    const url = new URL(request.url);
+    const lat = parseFloat(url.searchParams.get('lat') || '0');
+    const lng = parseFloat(url.searchParams.get('lon') || '0');
+
+    // Generate mock location data based on coordinates
+    const cities = ['San Francisco', 'New York', 'London', 'Tokyo', 'Paris', 'Sydney'];
+    const states = ['California', 'New York', 'England', 'Tokyo', 'Île-de-France', 'New South Wales'];
+    const countries = ['United States', 'United States', 'United Kingdom', 'Japan', 'France', 'Australia'];
+
+    const index = Math.floor(Math.abs(lat + lng) * 100) % cities.length;
+
+    return HttpResponse.json({
+      address: {
+        city: cities[index],
+        state: states[index],
+        country: countries[index],
+        country_code: ['us', 'us', 'gb', 'jp', 'fr', 'au'][index]
+      }
+    });
   })
 ];
