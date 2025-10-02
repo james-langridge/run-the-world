@@ -294,7 +294,11 @@ export async function syncActivities(athleteId: string): Promise<void> {
 
       console.log(`[Sync] Page complete. Progress: ${totalSynced} total, ${totalWithLocation} with location`);
 
-      await sleep(1000);
+      // Shorter delay in dev mode with mocks, full delay in production
+      const pageDelay = process.env.NEXT_PUBLIC_USE_MOCKS === 'true' ? 0 : 1000;
+      if (pageDelay > 0) {
+        await sleep(pageDelay);
+      }
     }
 
     console.log('[Sync] Updating location stats for athlete:', athleteId);
