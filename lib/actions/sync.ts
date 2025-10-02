@@ -1,5 +1,6 @@
 import { strava } from '@/lib/strava/client';
 import { prisma } from '@/lib/db/prisma';
+import { reverseGeocode } from '@/lib/geocoding/nominatim';
 
 type StravaActivitySummary = {
   id: number;
@@ -18,6 +19,7 @@ type StravaActivityDetailed = {
   distance: number;
   moving_time: number;
   start_date: string;
+  start_latlng: [number, number] | null;
   location_country: string | null;
   location_city: string | null;
   location_state: string | null;
@@ -93,14 +95,29 @@ export async function syncActivities(athleteId: string): Promise<void> {
             athleteId
           ) as unknown as StravaActivityDetailed;
 
-          // Log what we actually received to debug
-          console.log(`[Sync]   location_country value: "${detailed.location_country}", location_city: "${detailed.location_city}", location_state: "${detailed.location_state}"`);
+          // If Strava doesn't provide location data, use reverse geocoding
+          if (!detailed.location_country && detailed.start_latlng && detailed.start_latlng.length === 2) {
+            const [lat, lng] = detailed.start_latlng;
+            console.log(`[Sync]   Strava has no location data, reverse geocoding ${lat},${lng}...`);
 
-          if (detailed.location_country) {
+            const geocoded = await reverseGeocode(lat, lng);
+
+            if (geocoded.country) {
+              // Update the detailed object with geocoded data
+              detailed.location_country = geocoded.country;
+              detailed.location_city = geocoded.city;
+              detailed.location_state = geocoded.state;
+
+              detailedActivities.push(detailed);
+              console.log(`[Sync]   ✓ Activity ${activity.id} geocoded: ${geocoded.city || 'Unknown city'}, ${geocoded.country}`);
+            } else {
+              console.log(`[Sync]   ✗ Activity ${activity.id} geocoding failed, no country found`);
+            }
+          } else if (detailed.location_country) {
             detailedActivities.push(detailed);
-            console.log(`[Sync]   ✓ Activity ${activity.id} has location: ${detailed.location_city || 'Unknown city'}, ${detailed.location_country}`);
+            console.log(`[Sync]   ✓ Activity ${activity.id} has Strava location: ${detailed.location_city || 'Unknown city'}, ${detailed.location_country}`);
           } else {
-            console.log(`[Sync]   ✗ Activity ${activity.id} location_country is: ${detailed.location_country === null ? 'null' : detailed.location_country === undefined ? 'undefined' : 'empty string'}`);
+            console.log(`[Sync]   ✗ Activity ${activity.id} has no coordinates for geocoding`);
           }
         } catch (error) {
           console.error(`[Sync]   ✗ Failed to fetch activity ${activity.id}:`, error);
