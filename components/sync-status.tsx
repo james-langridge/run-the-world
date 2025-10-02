@@ -28,7 +28,7 @@ export function SyncStatus({
         {message || (progress > 0 ? `${progress} activities processed` : 'Starting sync...')}
       </p>
       <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-        Due to Strava rate limits, large syncs may take several hours. The sync will continue in the background even if you close this page. Your data will appear below as it&apos;s imported.
+        Due to Strava rate limits, large syncs may take several hours. You can close this page and check back later. Note: deployments will interrupt the sync, but your progress is saved.
       </p>
       <button
         onClick={handleRefresh}
