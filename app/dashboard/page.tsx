@@ -121,9 +121,14 @@ export default async function DashboardPage(props: {
             <h2 className="text-xl font-semibold text-yellow-900 dark:text-yellow-300 mb-2">
               No location data found
             </h2>
-            <p className="text-yellow-700 dark:text-yellow-400">
-              Your activities don&apos;t have location information. Make sure your Strava activities include location data.
+            <p className="text-yellow-700 dark:text-yellow-400 mb-4">
+              Your activities don&apos;t have location information, or the sync may have failed.
             </p>
+            <p className="text-sm text-yellow-600 dark:text-yellow-500 mb-6">
+              Last sync: {user.lastSyncAt ? new Date(user.lastSyncAt).toLocaleString() : 'Never'} |
+              Activities processed: {user.syncProgress}
+            </p>
+            <SyncButton athleteId={athleteId} />
           </div>
         )}
       </main>

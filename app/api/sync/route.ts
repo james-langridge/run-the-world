@@ -13,13 +13,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log('[Sync API] Starting sync for athlete:', athleteId);
+
     await prisma.user.update({
       where: { athleteId },
-      data: { syncStatus: 'SYNCING', syncProgress: 0 }
+      data: {
+        syncStatus: 'SYNCING',
+        syncProgress: 0,
+        lastSyncAt: new Date()
+      }
     });
 
+    console.log('[Sync API] Updated user status to SYNCING');
+
     syncActivities(athleteId).catch(error => {
-      console.error('Background sync error:', error);
+      console.error('[Sync API] Background sync error:', error);
     });
 
     return NextResponse.json({
@@ -27,7 +35,7 @@ export async function POST(request: NextRequest) {
       athleteId
     });
   } catch (error) {
-    console.error('Sync endpoint error:', error);
+    console.error('[Sync API] Sync endpoint error:', error);
     return NextResponse.json(
       { error: 'Failed to start sync' },
       { status: 500 }

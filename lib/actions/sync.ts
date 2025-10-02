@@ -35,13 +35,20 @@ function sleep(ms: number): Promise<void> {
 export async function syncActivities(athleteId: string): Promise<void> {
   let page = 1;
   let totalSynced = 0;
+  let totalWithLocation = 0;
+
+  console.log('[Sync] Starting sync for athlete:', athleteId);
 
   try {
     while (true) {
+      console.log(`[Sync] Fetching page ${page} for athlete ${athleteId}`);
+
       const activities = await strava.listAthleteActivitiesWithRefresh(
         athleteId,
         { per_page: 200, page }
       ) as unknown as StravaActivity[];
+
+      console.log(`[Sync] Received ${activities.length} activities on page ${page}`);
 
       if (activities.length === 0) break;
 
@@ -49,10 +56,15 @@ export async function syncActivities(athleteId: string): Promise<void> {
         .filter(a => a.location_country)
         .map(a => extractLocationData(a, athleteId));
 
-      await prisma.activity.createMany({
-        data: locations,
-        skipDuplicates: true
-      });
+      console.log(`[Sync] ${locations.length} of ${activities.length} activities have location data`);
+
+      if (locations.length > 0) {
+        await prisma.activity.createMany({
+          data: locations,
+          skipDuplicates: true
+        });
+        totalWithLocation += locations.length;
+      }
 
       totalSynced += activities.length;
       page++;
@@ -62,10 +74,16 @@ export async function syncActivities(athleteId: string): Promise<void> {
         data: { syncProgress: totalSynced }
       });
 
+      console.log(`[Sync] Progress: ${totalSynced} total, ${totalWithLocation} with location`);
+
       await sleep(1000);
     }
 
+    console.log('[Sync] Updating location stats for athlete:', athleteId);
     await updateLocationStats(athleteId);
+
+    const stats = await prisma.locationStat.count({ where: { athleteId } });
+    console.log(`[Sync] Created ${stats} location stat records`);
 
     await prisma.user.update({
       where: { athleteId },
@@ -74,7 +92,10 @@ export async function syncActivities(athleteId: string): Promise<void> {
         lastSyncAt: new Date()
       }
     });
+
+    console.log('[Sync] Sync completed successfully for athlete:', athleteId);
   } catch (error) {
+    console.error('[Sync] Sync failed for athlete:', athleteId, error);
     await prisma.user.update({
       where: { athleteId },
       data: { syncStatus: 'FAILED' }
