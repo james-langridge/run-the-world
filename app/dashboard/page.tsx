@@ -29,6 +29,19 @@ export default async function DashboardPage(props: {
     redirect('/');
   }
 
+  // Check for stale sync (stuck in SYNCING for more than 10 minutes)
+  if (user.syncStatus === 'SYNCING' && user.lastSyncAt) {
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+    if (user.lastSyncAt < tenMinutesAgo) {
+      console.log('[Dashboard] Detected stale sync, marking as FAILED');
+      await prisma.user.update({
+        where: { athleteId },
+        data: { syncStatus: 'FAILED' }
+      });
+      user.syncStatus = 'FAILED';
+    }
+  }
+
   const stats = await prisma.locationStat.findMany({
     where: { athleteId },
     orderBy: { totalDistance: 'desc' }
@@ -80,10 +93,10 @@ export default async function DashboardPage(props: {
         {user.syncStatus === 'FAILED' && (
           <div className="bg-red-50 dark:bg-red-900/20 rounded-lg shadow p-8 text-center">
             <h2 className="text-xl font-semibold text-red-900 dark:text-red-300 mb-4">
-              Sync failed
+              Sync failed or was interrupted
             </h2>
             <p className="text-red-700 dark:text-red-400 mb-6">
-              There was an error syncing your activities. Please try again.
+              The sync may have been interrupted by a deployment or encountered an error. Click below to try again.
             </p>
             <SyncButton athleteId={athleteId} />
           </div>
