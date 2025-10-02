@@ -93,11 +93,14 @@ export async function syncActivities(athleteId: string): Promise<void> {
             athleteId
           ) as unknown as StravaActivityDetailed;
 
+          // Log what we actually received to debug
+          console.log(`[Sync]   Response keys: ${Object.keys(detailed).filter(k => k.includes('location') || k.includes('lat') || k.includes('lng') || k.includes('city') || k.includes('country')).join(', ')}`);
+
           if (detailed.location_country) {
             detailedActivities.push(detailed);
             console.log(`[Sync]   ✓ Activity ${activity.id} has location: ${detailed.location_city || 'Unknown city'}, ${detailed.location_country}`);
           } else {
-            console.log(`[Sync]   ✗ Activity ${activity.id} has no location data`);
+            console.log(`[Sync]   ✗ Activity ${activity.id} has no location_country field`);
           }
         } catch (error) {
           console.error(`[Sync]   ✗ Failed to fetch activity ${activity.id}:`, error);
